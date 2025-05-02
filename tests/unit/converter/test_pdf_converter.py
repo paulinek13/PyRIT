@@ -10,9 +10,21 @@ import pytest
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 from pypdf import PageObject, PdfReader
+from unit.mocks import MockPromptTarget
 
+from pyrit.memory.central_memory import CentralMemory
+from pyrit.memory.duckdb_memory import DuckDBMemory
 from pyrit.models import DataTypeSerializer, SeedPrompt
 from pyrit.prompt_converter import ConverterResult, PDFConverter
+
+
+@pytest.fixture
+def setup_memory():
+    memory = DuckDBMemory(db_path=":memory:")
+    CentralMemory.set_memory_instance(memory)
+    mock_target = MockPromptTarget()
+    yield mock_target
+    CentralMemory.set_memory_instance(None)
 
 
 @pytest.fixture
@@ -60,7 +72,6 @@ async def test_convert_async_no_template(pdf_converter_no_template):
         patch.object(pdf_converter_no_template, "_generate_pdf", return_value=mock_pdf_bytes) as mock_generate,
         patch.object(pdf_converter_no_template, "_serialize_pdf") as mock_serialize,
     ):
-
         serializer_mock = MagicMock()
         serializer_mock.value = "mock_url"
         mock_serialize.return_value = serializer_mock
@@ -92,7 +103,6 @@ async def test_convert_async_with_template(pdf_converter_with_template):
         patch.object(pdf_converter_with_template, "_generate_pdf", return_value=mock_pdf_bytes) as mock_generate,
         patch.object(pdf_converter_with_template, "_serialize_pdf") as mock_serialize,
     ):
-
         serializer_mock = MagicMock()
         serializer_mock.value = "mock_url"
         mock_serialize.return_value = serializer_mock
@@ -370,7 +380,7 @@ async def test_empty_injection_items(mock_pdf_path):
 
 
 @pytest.mark.asyncio
-async def test_injection_items_non_existent_page_number(mock_pdf_path):
+async def test_injection_items_non_existent_page_number(mock_pdf_path, setup_memory):
     """
     Test the PDFConverter's handling of injection items with a non-existent page number.
     """
@@ -405,7 +415,7 @@ async def test_injection_items_non_existent_page_number(mock_pdf_path):
 
 
 @pytest.mark.asyncio
-async def test_non_standard_font_usage():
+async def test_non_standard_font_usage(setup_memory):
     """
     Test the ability to use a non-standard font (Times) in PDF generation.
     """
@@ -434,7 +444,7 @@ async def test_non_standard_font_usage():
 
 
 @pytest.mark.asyncio
-async def test_injection_on_last_page(mock_pdf_path):
+async def test_injection_on_last_page(mock_pdf_path, setup_memory):
     """
     Test injecting text on the last page of a multi-page PDF
     """

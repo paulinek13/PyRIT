@@ -20,10 +20,15 @@ def is_speechsdk_installed():
 @pytest.mark.skipif(not is_speechsdk_installed(), reason="Azure Speech SDK is not installed.")
 class TestAzureSpeechAudioToTextConverter:
 
-    @patch(
-        "pyrit.common.default_values.get_required_value", side_effect=lambda env_var_name, passed_value: passed_value
-    )
-    def test_azure_speech_audio_text_converter_initialization(self, mock_get_required_value):
+    @pytest.fixture(autouse=True)
+    def setup_environment(self):
+        with patch(
+            "pyrit.common.default_values.get_required_value",
+            side_effect=lambda env_var_name, passed_value: passed_value or "dummy_value",
+        ):
+            yield
+
+    def test_azure_speech_audio_text_converter_initialization(self):
         converter = AzureSpeechAudioToTextConverter(
             azure_speech_region="dummy_region", azure_speech_key="dummy_key", recognition_language="es-ES"
         )
